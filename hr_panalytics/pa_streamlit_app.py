@@ -3,8 +3,8 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from regex import R
 import streamlit as st
+
 
 # Create the streamlit dashboard
 st.set_page_config(
@@ -22,7 +22,7 @@ df = pd.read_excel('C:\python_da\hr_panalytics\imb_analytics_2021.xlsx')
 
 # CREATING OUR WEB APP DASHBOARD
 
-# ---------- SIDEBAR ----------
+# ====== SIDEBAR ======
 st.sidebar.header('Data filters:')
 #  Adding the filters
 # We need to save the data into a variable
@@ -58,7 +58,7 @@ df_selection = df.query(
 # Replace the original dataframe with the new one df_selection
 st.dataframe(df_selection)
 
-# ---------- MAINPAGE ----------
+# ====== MAINPAGE ======
 # Now is time to develop our main page with the charts and the KPI
 # Let's put a title
 st.title(':busts_in_silhouette: People Analytics')
@@ -66,35 +66,50 @@ st.markdown('##')
 
 # Our KPI
 # Total rows
-total_rows = len(df_selection)
+total_rows = len(df)
 
 # GENDER
-df_gender_female = df_selection[df_selection['Gender'] == 'Female']
-df_gender_male = df_selection[df_selection['Gender'] == 'Male']
-# Total and percentage variables to use on our charts
-female_count = df_gender_female.shape[0]
-male_count = df_gender_male.shape[0]
-female_percentage = round((female_count / total_rows) * 100, 0)
-male_percentage = round((male_count / total_rows) * 100, 0)
-gender_female_count = ":woman:" + str((df_selection['Gender']=='Female').sum())
-gender_male_count = ":man:" + str((df_selection['Gender']=='Male').sum())
+genders = len(df_selection)
+gender_percentage = round((genders / total_rows) * 100, 0) if genders != 0 else 0
 
 # ATTRITION
-df_attrition_yes = df_selection[df_selection['Attrition'] == 'Yes']
-yes_count = df_attrition_yes.shape[0]
-attrition_percentage = round((yes_count / total_rows) * 100, 2)
+attrition_yes = len(df_selection[df_selection['Gender'].isin(gender) & (df_selection['Attrition'] == 'Yes')])
+# yes_count = attrition_yes.shape[0]
+attrition_rows = genders
+attrition_percentage = round((attrition_yes / total_rows) * 100, 2) if attrition_rows != 0 else 0
+
+# DEPARTMENT
+# departments = df.groupby(by='Department').sum()[['Attrition']]
 
 # Inserting the data into web columns
 left_column, middle_column, right_column = st.columns(3)
 with left_column:
     st.subheader('Gender count:')
-    st.subheader(f"{gender}")
+    st.subheader(f"{genders} {gender_percentage} %")
 with middle_column:
     st.subheader('Attrition YES:')
-    st.subheader(f"{yes_count}")
+    st.subheader(f"{attrition_yes}")
 with right_column:
     st.subheader('Attrition rate:')
-    st.subheader(f"{attrition_percentage}")
+    if attrition_rows != 0:
+        st.subheader(f"{attrition_percentage}")
+    else:
+        st.subheader("N/A (Select gender filters to see attrition rate)")
     
 # Seperating the different data
 st.markdown('- - -')
+
+
+# ====== CHARTS ======
+gender_count = df.groupby(by=['Gender']).size().reset_index(name='Count')
+
+fig_gender = px.pie(
+    gender_count,
+    values='Count',
+    names='Gender',
+    title='Gender Distribution'
+)
+
+left_column = st.columns(1)
+with left_column:
+    st.plotly_chart(fig_gender, use_container_width=True, width=300, height=300)
